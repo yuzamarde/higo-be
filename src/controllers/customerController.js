@@ -28,38 +28,150 @@ export const getAllCustomers = async (req, res) => {
     }
 };
 
-// Fetch a customer by ID
-export const getCustomerById = async (req, res) => {
+export const searchCustomersByName = async (req, res) => {
     try {
-        const customer = await Customer.findById(req.params.id);
-        if (!customer) {
-            return res.status(404).json({ message: 'Customer not found' });
-        }
-        res.json(customer);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-export const getCustomersByName = async (req, res) => {
-    try {
-        const { name } = req.query;  // Get the `name` query parameter from the request
+        const { name } = req.query;
 
         if (!name) {
-            return res.status(400).json({ message: 'Name query parameter is required' });
+            return res.status(400).json({ error: 'Name query parameter is required' });
         }
 
-        // Use regular expression to find names that start with the input `name` (case insensitive)
         const customers = await Customer.find({
-            Name: { $regex: `^${name}`, $options: 'i' }  // ^ ensures it starts with the provided name
+            name: { $regex: name, $options: 'i' } // Case-insensitive search
         });
 
-        if (customers.length === 0) {
-            return res.status(404).json({ message: 'No customers found with that name' });
-        }
-
-        res.json(customers);  // Return matching customers
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+        return res.status(200).json({ total: customers.length, customers });
+    } catch (error) {
+        return res.status(500).json({ error: 'Server error', details: error.message });
     }
 };
+
+export const getAllGendersCount = async (req, res) => {
+    try {
+        const result = await Customer.aggregate([
+            {
+                $match: { gender: { $in: ['Male', 'Female'] } }
+            },
+            {
+                $group: {
+                    _id: '$gender',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    gender: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ error: 'Server error', details: error.message });
+    }
+};
+
+
+export const getCustomerFieldCounts = async (req, res) => {
+    try {
+        const fields = ['gender', 'digitalInterest', 'brandDevice', 'location', 'nameOfLocation'];
+
+        const pipeline = fields.map((field) => ([
+            {
+                $group: {
+                    _id: `$${field}`,
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    key: '$_id',
+                    count: 1
+                }
+            },
+            {
+                $sort: { count: -1 }
+            }
+        ])).flatMap((stage, i) => ([
+            { $facet: { [fields[i]]: [stage[0], stage[1], stage[2]] } }
+        ]));
+
+        // Since $facet must be in one stage
+        const result = await Customer.aggregate([
+            {
+                $facet: {
+                    gender: [
+                        { $group: { _id: "$gender", count: { $sum: 1 } } },
+                        { $project: { _id: 0, key: "$_id", count: 1 } },
+                        { $sort: { count: -1 } }
+                    ],
+                    digitalInterest: [
+                        { $group: { _id: "$digitalInterest", count: { $sum: 1 } } },
+                        { $project: { _id: 0, key: "$_id", count: 1 } },
+                        { $sort: { count: -1 } }
+                    ],
+                    brandDevice: [
+                        { $group: { _id: "$brandDevice", count: { $sum: 1 } } },
+                        { $project: { _id: 0, key: "$_id", count: 1 } },
+                        { $sort: { count: -1 } }
+                    ],
+                    location: [
+                        { $group: { _id: "$location", count: { $sum: 1 } } },
+                        { $project: { _id: 0, key: "$_id", count: 1 } },
+                        { $sort: { count: -1 } }
+                    ],
+                    nameOfLocation: [
+                        { $group: { _id: "$nameOfLocation", count: { $sum: 1 } } },
+                        { $project: { _id: 0, key: "$_id", count: 1 } },
+                        { $sort: { count: -1 } }
+                    ]
+                }
+            }
+        ]);
+
+        res.status(200).json(result[0]);
+    } catch (error) {
+        res.status(500).json({ error: 'Server error', details: error.message });
+    }
+};
+
+
+export const filterAndSearchCustomers = async (req, res) => {
+    try {
+        const {
+            name,
+            digitalInterest,
+            brandDevice,
+            location,
+            nameOfLocation,
+            gender
+        } = req.query;
+
+        const filter = {};
+
+        // Tambahkan pencarian nama jika disediakan
+        if (name) {
+            filter.name = { $regex: name, $options: 'i' };
+        }
+
+        // Tambahkan filter lain jika disediakan
+        if (digitalInterest) filter.digitalInterest = digitalInterest;
+        if (brandDevice) filter.brandDevice = brandDevice;
+        if (location) filter.location = location;
+        if (nameOfLocation) filter.nameOfLocation = nameOfLocation;
+        if (gender) filter.gender = gender;
+
+        const customers = await Customer.find(filter);
+
+        return res.status(200).json({
+            total: customers.length,
+            customers
+        });
+    } catch (error) {
+        return res.status(500).json({ error: 'Server error', details: error.message });
+    }
+};
+
