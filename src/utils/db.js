@@ -1,21 +1,24 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const connectDB = async () => {
     try {
         const dbUri = process.env.MONGODB_URI;
-        console.log("MONGODB_URI:", dbUri);  // ⬅️ Tambahkan ini untuk cek
+        console.log("MONGODB_URI:", dbUri);  // Untuk debugging
         if (!dbUri) {
             throw new Error('MongoDB URI is not defined in .env');
         }
         await mongoose.connect(dbUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,  // ⬅️ Tambahkan timeout
-            socketTimeoutMS: 10000           // ⬅️ Tambahkan timeout
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 10000
         });
-        console.log('MongoDB connected');
+        console.log('✅ MongoDB connected');
     } catch (err) {
-        console.error(err.message);
+        console.error(`❌ MongoDB connection error: ${err.message}`);
         process.exit(1);
     }
 };
