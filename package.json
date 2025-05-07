@@ -4,9 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "build": "echo 'No build step required for Express'",
     "start": "node src/index.js",
-    "build": "npm install"
+    "dev": "nodemon src/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
