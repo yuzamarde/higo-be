@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';  // Ensure dotenv is imported
 import customerRoutes from './routes/customerRoutes.js';
-import connectDB from './utils/db.js';
+import connectDB from './utils/database.js';
 import errorHandler from './middleware/errorHandler.js';
 
 // Load environment variables from .env file
@@ -19,9 +19,8 @@ app.use(express.json());
 
 // Hello World route
 app.get('/', (req, res) => {
-    res.send('Hello World');  // Send "Hello World" on the root path
+    res.send('Hello from Express on Vercel!');
 });
-
 // Routes for customers
 app.use("/api", customerRoutes);
 
