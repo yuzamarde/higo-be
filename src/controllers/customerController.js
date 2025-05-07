@@ -147,31 +147,39 @@ export const filterAndSearchCustomers = async (req, res) => {
             brandDevice,
             location,
             nameOfLocation,
-            gender
+            gender,
+            page = 1,
+            limit = 10
         } = req.query;
 
         const filter = {};
 
-        // Tambahkan pencarian nama jika disediakan
         if (name) {
             filter.name = { $regex: name, $options: 'i' };
         }
-
-        // Tambahkan filter lain jika disediakan
         if (digitalInterest) filter.digitalInterest = digitalInterest;
         if (brandDevice) filter.brandDevice = brandDevice;
         if (location) filter.location = location;
         if (nameOfLocation) filter.nameOfLocation = nameOfLocation;
         if (gender) filter.gender = gender;
 
-        const customers = await Customer.find(filter);
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [total, customers] = await Promise.all([
+            Customer.countDocuments(filter),
+            Customer.find(filter)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .sort({ date: -1 }) // optional: sort by date descending
+        ]);
 
         return res.status(200).json({
-            total: customers.length,
+            total,
+            page: parseInt(page),
+            totalPages: Math.ceil(total / limit),
             customers
         });
     } catch (error) {
         return res.status(500).json({ error: 'Server error', details: error.message });
     }
 };
-
