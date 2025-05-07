@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build": "[my-framework] build --output public"
+    "build": "npm install"
   },
   "dependencies": {
     "cors": "^2.8.5",
